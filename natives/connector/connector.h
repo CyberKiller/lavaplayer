@@ -1,6 +1,7 @@
 #pragma once
 
 #include <jni.h>
+#include <stdint.h>
 
 #ifdef __GNUC__
 #define CONNECTOR_EXPORT __attribute__ ((visibility("default"))) JNIEXPORT

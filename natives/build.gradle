@@ -176,12 +176,19 @@ def waitForAndCheckSuccess(process, name) {
 }
 
 def buildOpusOnLinux(force) {
-  def present = file("${projectDir}/libs/64/libopus.a").exists()
+  def parameters = getBuildParameters('connector')
+  def present = file("${projectDir}/libs/${parameters.identifier}/libopus.a").exists()
 
   if (force || !present) {
     def flags = "-fPIC -O3 -fdata-sections -ffunction-sections"
-    def process = ["./configure", "--enable-static", "--with-cpu=x64-64", "--with-pic", "CFLAGS=${flags}", "CXXFLAGS=${flags}", "LDFLAGS=${flags}"].
-        execute(null as String[], file("$projectDir/opus/opus-${opusVersion}"))
+    def process
+    if (Os.isArch('arm')) {
+      process = ["./configure", "--enable-static", "--with-pic", "CFLAGS=${flags}", "CXXFLAGS=${flags}", "LDFLAGS=${flags}"].
+          execute(null as String[], file("$projectDir/opus/opus-${opusVersion}"))
+    } else {
+      process = ["./configure", "--enable-static", "--with-cpu=x64-64", "--with-pic", "CFLAGS=${flags}", "CXXFLAGS=${flags}", "LDFLAGS=${flags}"].
+          execute(null as String[], file("$projectDir/opus/opus-${opusVersion}"))
+    }
 
     waitForAndCheckSuccess(process, "Opus ./configure")
 
@@ -193,7 +200,7 @@ def buildOpusOnLinux(force) {
 
     copy {
       from "$projectDir/opus/opus-${opusVersion}/.libs/libopus.a"
-      into "$projectDir/libs/64"
+      into "$projectDir/libs/${parameters.identifier}"
     }
   }
 }
@@ -214,14 +221,20 @@ def replaceAutotoolsVersion(directory, originalVersion) {
 }
 
 def buildMpg123OnLinux(force) {
-  def present = file("${projectDir}/libs/64/libmpg123.a").exists()
-
+  def parameters = getBuildParameters('connector')
+  def present = file("${projectDir}/libs/${parameters.identifier}/libmpg123.a").exists()
   if (force || !present) {
     replaceAutotoolsVersion("$projectDir/mp3/mpg123-${mpg123Version}", '1.15.1')
 
     def flags = "-fPIC -O3 -fdata-sections -ffunction-sections"
-    def process = ['./configure', '--enable-static', '--with-cpu=x86-64', '--with-pic', "CFLAGS=$flags", "CXXFLAGS=$flags"].
-        execute(null as String[], file("$projectDir/mp3/mpg123-${mpg123Version}"))
+    def process
+    if (Os.isArch('arm')) {
+      process = ['./configure', '--enable-static', '--with-pic', "CFLAGS=$flags", "CXXFLAGS=$flags"].
+         execute(null as String[], file("$projectDir/mp3/mpg123-${mpg123Version}"))
+    } else {
+      process = ['./configure', '--enable-static', '--with-cpu=x86-64', '--with-pic', "CFLAGS=$flags", "CXXFLAGS=$flags"].
+         execute(null as String[], file("$projectDir/mp3/mpg123-${mpg123Version}"))
+    }
 
     waitForAndCheckSuccess(process, "Mpg123 ./configure")
 
@@ -233,7 +246,7 @@ def buildMpg123OnLinux(force) {
 
     copy {
       from "$projectDir/mp3/mpg123-${mpg123Version}/src/libmpg123/.libs/libmpg123.a"
-      into "$projectDir/libs/64"
+      into "$projectDir/libs/${parameters.identifier}"
     }
   }
 }
@@ -242,9 +255,14 @@ def prepareOggOnLinux(force) {
   def configured = file("$projectDir/vorbis/libogg-${oggVersion}/include/ogg/config_types.h").exists()
 
   if (force || !configured) {
-    def process = ["./configure", "--enable-static", "--build=x86_64-pc-linux-gnu", "--with-pic"].
-        execute(null as String[], file("$projectDir/vorbis/libogg-${oggVersion}"))
-
+    def process
+    if (Os.isArch('arm')) {
+      process = ["./configure", "--enable-static", "--build=armhf-pc-linux-gnu", "--with-pic"].
+          execute(null as String[], file("$projectDir/vorbis/libogg-${oggVersion}"))
+    } else {
+      process = ["./configure", "--enable-static", "--build=x86_64-pc-linux-gnu", "--with-pic"].
+          execute(null as String[], file("$projectDir/vorbis/libogg-${oggVersion}"))
+    }
     process.waitForProcessOutput(System.out as Appendable, System.err)
   }
 }

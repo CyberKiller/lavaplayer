@@ -27,10 +27,10 @@ CONNECTOR_EXPORT jlong JNICALL Java_com_sedmelluq_discord_lavaplayer_natives_mp3
 		return 0;
 	}
 	
-	return (jlong) handle;
+	return (intptr_t) handle;
 }
 
-CONNECTOR_EXPORT void JNICALL Java_com_sedmelluq_discord_lavaplayer_natives_mp3_Mp3DecoderLibrary_destroy(JNIEnv *jni, jobject me, jlong instance) {
+CONNECTOR_EXPORT void JNICALL Java_com_sedmelluq_discord_lavaplayer_natives_mp3_Mp3DecoderLibrary_destroy(JNIEnv *jni, jobject me, intptr_t instance) {
 	void* handle = (void*) instance;
 	
 	if (handle != NULL) {
@@ -39,7 +39,7 @@ CONNECTOR_EXPORT void JNICALL Java_com_sedmelluq_discord_lavaplayer_natives_mp3_
 	}
 }
 
-CONNECTOR_EXPORT jint JNICALL Java_com_sedmelluq_discord_lavaplayer_natives_mp3_Mp3DecoderLibrary_decode(JNIEnv *jni, jobject me, jlong instance, jobject direct_input,
+CONNECTOR_EXPORT jint JNICALL Java_com_sedmelluq_discord_lavaplayer_natives_mp3_Mp3DecoderLibrary_decode(JNIEnv *jni, jobject me, intptr_t instance, jobject direct_input,
 		jint input_length, jobject direct_output, jint output_length) {
 	
 	if (instance == 0) {

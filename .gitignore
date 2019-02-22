@@ -31,3 +31,12 @@ udpqueue-natives/dist
 version.txt
 
 *.log
+
+.settings
+.vscode
+.project
+*.class
+.classpath
+main/bin/main/certificates/bundled.txt
+main/bin/test/com/sedmelluq/discord/lavaplayer/integration/LocalFormatIntegrationTest.groovy
+main/bin/main/certificates/dst-root-ca-x3.jks

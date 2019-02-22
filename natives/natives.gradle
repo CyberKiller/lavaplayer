@@ -17,6 +17,16 @@ def getBuildParameters(base) {
         'buildArguments': [],
         'env': [:]
     ]
+  } else if (Os.isFamily(Os.FAMILY_UNIX) && Os.isArch('arm')) {
+        def bitSuffix = 'arm'
+        def bits = 'float-abi=hard'
+        
+        return [
+        'identifier': "linux-${bitSuffix}",
+        'library': "lib${base}.so",
+        'setupArguments': ['-DCMAKE_BUILD_TYPE=Release'],
+        'buildArguments': [],
+        'env': ['CXXFLAGS': "-m${bits}", 'CFLAGS': "-m${bits}", 'LDFLAGS': "-m${bits}"]    ]
   } else {
     return [
         'identifier': "linux-x86-64",
@@ -38,10 +48,11 @@ def createBuildTask(tasksHolder, config) {
   def buildDirectory = "${config.buildBase}/${parameters.identifier}"
   def distDirectory = "${config.projectBase}/dist/${parameters.identifier}"
   def deployDirectory = "${config.deployBase}/src/main/resources/natives/${parameters.identifier}"
-  def taskBase = "${config.name}-64"
+  def taskBase = "${config.name}-${parameters.identifier}"
 
   parameters.env.put('DIST_DIR', distDirectory)
   parameters.env.put('JAVA_HOME', getHomeDirectory())
+  parameters.env.put('INDENTIFIER', parameters.identifier)
 
   def setupTask = tasksHolder.create("${taskBase}-setup", Exec) {
     doFirst {
@@ -96,3 +107,4 @@ def createBuildTask(tasksHolder, config) {
 }
 
 ext.createBuildTask = { tasksHolder, config -> createBuildTask(tasksHolder, config) }
+ext.getBuildParameters = { base -> getBuildParameters(base) }
