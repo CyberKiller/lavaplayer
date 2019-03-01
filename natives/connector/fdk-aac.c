@@ -9,7 +9,7 @@ CONNECTOR_EXPORT void JNICALL Java_com_sedmelluq_discord_lavaplayer_natives_aac_
 	aacDecoder_Close((HANDLE_AACDECODER) instance);
 }
 
-CONNECTOR_EXPORT jint JNICALL Java_com_sedmelluq_discord_lavaplayer_natives_aac_AacDecoderLibrary_configure(JNIEnv *jni, jobject me, intptr_t instance, intptr_t buffer_data) {
+CONNECTOR_EXPORT jint JNICALL Java_com_sedmelluq_discord_lavaplayer_natives_aac_AacDecoderLibrary_configure(JNIEnv *jni, jobject me, intptr_t instance, jlong buffer_data) {
 	UCHAR* buffer = (UCHAR*)&buffer_data;
 	UINT length = sizeof(intptr_t);
 	
