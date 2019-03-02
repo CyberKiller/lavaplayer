@@ -10,10 +10,10 @@ apply plugin: 'de.undercouch.download'
 
 apply from: 'natives.gradle'
 
-ext.opusVersion = '1.2.1'
+ext.opusVersion = '1.3'
 ext.mpg123Version = '1.25.10'
 ext.oggVersion = '1.3.3'
-ext.vorbisVersion = '1.3.5'
+ext.vorbisVersion = '1.3.6'
 ext.sampleRateVersion = '0.1.9'
 ext.fdkAacVersion = '2.0.0'
 
@@ -175,20 +175,52 @@ def waitForAndCheckSuccess(process, name) {
   }
 }
 
+//Raspberry Pi autotools cross compile stuff
+def getRpiToolchain() { 
+  def toolchainHost = 'arm-linux-gnueabihf'
+  def toolchainPath = System.env['HOME'] + '/raspberrypi/gcc-linaro-7.4.1-2019.02-x86_64_arm-linux-gnueabihf/bin'
+
+  def CPP = "${toolchainPath}/${toolchainHost}-cpp"
+  def CC = "${toolchainPath}/${toolchainHost}-gcc"
+  def CXX = "${toolchainPath}/${toolchainHost}-g++"
+  def LD = "${toolchainPath}/${toolchainHost}-ld"
+  def AS = "${toolchainPath}/${toolchainHost}-as"
+  def AR = "${toolchainPath}/${toolchainHost}-ar"
+  def RANLIB = "${toolchainPath}/${toolchainHost}-ranlib"
+
+  def sysRoot = System.env['HOME'] + '/raspberrypi/rootfs'
+  def CPPFLAGS = "--sysroot=${sysRoot}"
+  def PKG_CONFIG_LIBDIR = "${sysRoot}/usr/lib/arm-linux-gnueabihf/pkgconfig:${sysRoot}/usr/share/pkgconfig"
+  
+  return [
+    args: ["CPPFLAGS=${CPPFLAGS}", "--host=${toolchainHost}",
+      "PKG_CONFIG_DIR=", "PKG_CONFIG_LIBDIR=${PKG_CONFIG_LIBDIR}", "PKG_CONFIG_SYSROOT=${sysRoot}", 
+      "CPP=${CPP}", "CC=${CC}", "CXX=${CXX}", "LD=${LD}", "AS=${AS}", "AR=${AR}", "RANLIB=${RANLIB}"
+      ],
+    flags: " --sysroot=${sysRoot}"
+  ]
+}
+
+def rpiToolchain = getRpiToolchain()
+//print rpiToolchain.toMapString() + "/n"
+
 def buildOpusOnLinux(force) {
   def parameters = getBuildParameters('connector')
   def present = file("${projectDir}/libs/${parameters.identifier}/libopus.a").exists()
 
   if (force || !present) {
     def flags = "-fPIC -O3 -fdata-sections -ffunction-sections"
-    def process
-    if (Os.isArch('arm')) {
-      process = ["./configure", "--enable-static", "--with-pic", "CFLAGS=${flags}", "CXXFLAGS=${flags}", "LDFLAGS=${flags}"].
-          execute(null as String[], file("$projectDir/opus/opus-${opusVersion}"))
-    } else {
-      process = ["./configure", "--enable-static", "--with-cpu=x64-64", "--with-pic", "CFLAGS=${flags}", "CXXFLAGS=${flags}", "LDFLAGS=${flags}"].
-          execute(null as String[], file("$projectDir/opus/opus-${opusVersion}"))
+    if (System.env['RPI_CROSS_COMPILE'] != null) {
+      flags += rpiToolchain['flags']
     }
+    def args = ["./configure", "--enable-static", "--with-pic", "CFLAGS=${flags}", "CXXFLAGS=${flags}", "LDFLAGS=${flags}"]
+    if (System.env['RPI_CROSS_COMPILE'] != null) {
+      args.addAll(rpiToolchain['args'])
+    } else if (Os.isArch('x86_64')) {
+      args.add(2, '--with-cpu=x86-64')
+    }
+    def process = args.execute(null as String[], file("$projectDir/opus/opus-${opusVersion}"))
+    
 
     waitForAndCheckSuccess(process, "Opus ./configure")
 
@@ -227,14 +259,16 @@ def buildMpg123OnLinux(force) {
     replaceAutotoolsVersion("$projectDir/mp3/mpg123-${mpg123Version}", '1.15.1')
 
     def flags = "-fPIC -O3 -fdata-sections -ffunction-sections"
-    def process
-    if (Os.isArch('arm')) {
-      process = ['./configure', '--enable-static', '--with-pic', "CFLAGS=$flags", "CXXFLAGS=$flags"].
-         execute(null as String[], file("$projectDir/mp3/mpg123-${mpg123Version}"))
-    } else {
-      process = ['./configure', '--enable-static', '--with-cpu=x86-64', '--with-pic', "CFLAGS=$flags", "CXXFLAGS=$flags"].
-         execute(null as String[], file("$projectDir/mp3/mpg123-${mpg123Version}"))
+    if (System.env['RPI_CROSS_COMPILE'] != null) {
+      flags += rpiToolchain['flags']
     }
+    def args = ['./configure', '--enable-static', '--with-pic', "CFLAGS=$flags", "CXXFLAGS=$flags"]
+    if (System.env['RPI_CROSS_COMPILE'] != null) {
+      args.addAll(rpiToolchain['args'])
+    } else if (Os.isArch('x86_64')) {
+      args.add(2, '--with-cpu=x86-64')
+    }
+    def process = args.execute(null as String[], file("$projectDir/mp3/mpg123-${mpg123Version}"))
 
     waitForAndCheckSuccess(process, "Mpg123 ./configure")
 
@@ -255,14 +289,13 @@ def prepareOggOnLinux(force) {
   def configured = file("$projectDir/vorbis/libogg-${oggVersion}/include/ogg/config_types.h").exists()
 
   if (force || !configured) {
-    def process
-    if (Os.isArch('arm')) {
-      process = ["./configure", "--enable-static", "--build=armhf-pc-linux-gnu", "--with-pic"].
-          execute(null as String[], file("$projectDir/vorbis/libogg-${oggVersion}"))
-    } else {
-      process = ["./configure", "--enable-static", "--build=x86_64-pc-linux-gnu", "--with-pic"].
-          execute(null as String[], file("$projectDir/vorbis/libogg-${oggVersion}"))
+    def args = ["./configure", "--enable-static", "--with-pic"]
+    if (System.env['RPI_CROSS_COMPILE'] != null || Os.isArch('arm')) {
+      args.add(2, "--build=armhf-pc-linux-gnu")
+    } else if (Os.isArch('x86_64')) {
+      args.add(2, "--build=x86_64-pc-linux-gnu")
     }
+    def process = args.execute(null as String[], file("$projectDir/vorbis/libogg-${oggVersion}"))
     process.waitForProcessOutput(System.out as Appendable, System.err)
   }
 }

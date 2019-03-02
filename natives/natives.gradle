@@ -17,14 +17,18 @@ def getBuildParameters(base) {
         'buildArguments': [],
         'env': [:]
     ]
-  } else if (Os.isFamily(Os.FAMILY_UNIX) && Os.isArch('arm')) {
+  } else if (System.env['RPI_CROSS_COMPILE'] != null || (Os.isFamily(Os.FAMILY_UNIX) && Os.isArch('arm'))) {
         def bitSuffix = 'arm'
         def bits = 'float-abi=hard'
+        def cmakeArgs = ['-DCMAKE_BUILD_TYPE=Release']
+        if (System.env['RPI_CROSS_COMPILE'] != null) {
+          cmakeArgs << '-DCMAKE_TOOLCHAIN_FILE=' + System.env['HOME'] + '/raspberrypi/pi.cmake'
+        }
         
         return [
         'identifier': "linux-${bitSuffix}",
         'library': "lib${base}.so",
-        'setupArguments': ['-DCMAKE_BUILD_TYPE=Release'],
+        'setupArguments': cmakeArgs,
         'buildArguments': [],
         'env': ['CXXFLAGS': "-m${bits}", 'CFLAGS': "-m${bits}", 'LDFLAGS': "-m${bits}"]    ]
   } else {
