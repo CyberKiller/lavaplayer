@@ -199,8 +199,9 @@ def getRpiToolchain() {
     flags: " --sysroot=${RPI_SYSROOT}"
   ]
 }
-
-def rpiToolchain = getRpiToolchain()
+if (System.env['RPI_CROSS_COMPILE'] != null) {
+  def rpiToolchain = getRpiToolchain()
+}
 //print rpiToolchain.toMapString() + "/n"
 
 def buildOpusOnLinux(force) {
